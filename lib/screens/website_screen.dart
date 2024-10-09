@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import '../providers/website_provider.dart';
+import '../providers/keyword_provider.dart'; // Import KeywordProvider
+import '../services/web_scraper.dart'; // Import WebScraper
 import 'keyword_screen.dart'; // Import the KeywordScreen
+import '../models/website.dart'; // Import the Website model
+import '../models/keyword.dart'; // Import the Keyword model
 
 class WebsiteScreen extends StatefulWidget {
   @override
@@ -14,11 +18,16 @@ class _WebsiteScreenState extends State<WebsiteScreen> {
       GlobalKey<FormBuilderState>(); // Global key to manage the form
   final _urlController =
       TextEditingController(); // Controller to manage text input for adding websites
+  final WebScraper _webScraper = WebScraper(); // Instance of WebScraper
+
+  List<String> _matchedArticles = []; // List to store matching articles
 
   @override
   Widget build(BuildContext context) {
     final websiteProvider =
         Provider.of<WebsiteProvider>(context); // Access the WebsiteProvider
+    final keywordProvider =
+        Provider.of<KeywordProvider>(context); // Access the KeywordProvider
 
     return Scaffold(
       appBar: AppBar(
@@ -42,6 +51,7 @@ class _WebsiteScreenState extends State<WebsiteScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            // Form to add a website
             FormBuilder(
               key: _formKey, // Key to manage the form state
               child: Column(
@@ -78,8 +88,9 @@ class _WebsiteScreenState extends State<WebsiteScreen> {
               ),
             ),
             SizedBox(height: 24),
+
+            // Expanded list of websites
             Expanded(
-              // Expanded widget allows the list to take up remaining space
               child: ListView.builder(
                 itemCount:
                     websiteProvider.websites.length, // Number of websites
@@ -88,18 +99,20 @@ class _WebsiteScreenState extends State<WebsiteScreen> {
                     title: Text(websiteProvider
                         .websites[index].url), // Display website URL
                     trailing: Row(
-                      mainAxisSize: MainAxisSize
-                          .min, // Minimize row size to fit buttons only
+                      mainAxisSize:
+                          MainAxisSize.min, // Minimize row size to fit buttons
                       children: [
+                        // Edit button
                         IconButton(
-                          icon: Icon(Icons.edit), // Edit icon button
+                          icon: Icon(Icons.edit),
                           onPressed: () {
                             _editWebsiteDialog(context, index,
                                 websiteProvider); // Open edit dialog
                           },
                         ),
+                        // Delete button
                         IconButton(
-                          icon: Icon(Icons.delete), // Delete icon button
+                          icon: Icon(Icons.delete),
                           onPressed: () {
                             websiteProvider
                                 .removeWebsite(index); // Remove website
@@ -111,13 +124,98 @@ class _WebsiteScreenState extends State<WebsiteScreen> {
                 },
               ),
             ),
+
+            // Display matched articles
+            Expanded(
+              child: _matchedArticles.isEmpty
+                  ? Center(
+                      child: Text(
+                          'No matching articles found')) // Display if no articles
+                  : ListView.builder(
+                      itemCount: _matchedArticles
+                          .length, // Number of matching articles
+                      itemBuilder: (context, index) {
+                        return ListTile(
+                          title: Text(
+                              _matchedArticles[index]), // Display article title
+                        );
+                      },
+                    ),
+            ),
+
+            // Spacer to push the button to the bottom
+            SizedBox(height: 24),
+
+            // Search for Articles button placed at the bottom
+            ElevatedButton(
+              onPressed: () async {
+                await _scrapeWebsites(websiteProvider.websites,
+                    keywordProvider.keywords); // Start scraping
+              },
+              child: Text('Search for Articles'),
+            ),
+
           ],
         ),
       ),
     );
   }
 
-  // Function to display a dialog for editing the website URL
+  // Function to scrape all websites and filter articles based on keywords
+Future<void> _scrapeWebsites(
+      List<Website> websites, List<Keyword> keywords) async {
+    List<String> keywordList = keywords
+        .cast<Keyword>()
+        .map((keyword) => keyword.keyword)
+        .toList(); // Convert keywords to a list of strings
+    List<String> allMatchedArticles = []; // Store all matched articles
+
+    print('Starting to scrape websites...');
+
+    for (var website in websites) {
+      // Ensure the URL starts with http:// or https://
+      String url = website.url.startsWith('http')
+          ? website.url
+          : 'https://${website.url}';
+
+      print('Fetching content from: $url');
+      // Fetch website content
+      String? content = await _webScraper.fetchWebsiteContent(url);
+
+      if (content != null) {
+        print('Successfully fetched content from: $url');
+
+        // Extract article titles from the content
+        List<String> articleTitles = _webScraper.extractArticleTitles(content);
+        print('Extracted ${articleTitles.length} article titles from: $url');
+
+        // Filter articles that match any of the keywords
+        List<String> matchedArticles =
+            _webScraper.filterArticlesByKeyword(articleTitles, keywordList);
+
+        print('Found ${matchedArticles.length} matching articles for keywords');
+
+        // Add the matched articles to the result list
+        allMatchedArticles.addAll(matchedArticles);
+      } else {
+        print('Failed to fetch content from: $url');
+      }
+    }
+
+    // Update the state to display the matched articles
+    setState(() {
+      _matchedArticles = allMatchedArticles;
+      print('Updated matched articles: $_matchedArticles');
+    });
+
+    if (allMatchedArticles.isEmpty) {
+      print('No articles matched the keywords');
+    }
+  }
+
+
+
+  // Dialog to edit website URL
   void _editWebsiteDialog(
       BuildContext context, int index, WebsiteProvider websiteProvider) {
     final _editUrlController = TextEditingController(

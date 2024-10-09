@@ -31,8 +31,10 @@ dependencies:
   flutter:
     sdk: flutter
   provider: ^6.0.0
-  flutter_form_builder: ^7.1.0
-  shared_preferences: ^2.0.9
+  flutter_form_builder: ^9.4.1
+  shared_preferences: ^2.0.9  # For saving the websites and keywords
+  http: ^1.2.2  # For making network requests
+  html: ^0.15.0  # For parsing and querying HTML content
 
     
 

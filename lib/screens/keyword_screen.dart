@@ -9,15 +9,12 @@ class KeywordScreen extends StatefulWidget {
 }
 
 class _KeywordScreenState extends State<KeywordScreen> {
-  final _formKey =
-      GlobalKey<FormBuilderState>(); // Global key to manage the form
-  final _keywordController =
-      TextEditingController(); // Controller to manage text input for adding keywords
+  final _formKey = GlobalKey<FormBuilderState>();
+  final _keywordController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-    final keywordProvider =
-        Provider.of<KeywordProvider>(context); // Access the KeywordProvider
+    final keywordProvider = Provider.of<KeywordProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -28,21 +25,19 @@ class _KeywordScreenState extends State<KeywordScreen> {
         child: Column(
           children: [
             FormBuilder(
-              key: _formKey, // Key to manage the form state
+              key: _formKey,
               child: Column(
                 children: [
                   FormBuilderTextField(
                     name: 'keyword',
-                    controller:
-                        _keywordController, // Controller for the keyword input field
+                    controller: _keywordController,
                     decoration: InputDecoration(
-                      labelText: 'Keyword', // Input label
-                      border:
-                          OutlineInputBorder(), // Adds a border to the input field
+                      labelText: 'Keyword',
+                      border: OutlineInputBorder(),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter a keyword'; // Validator for empty input
+                        return 'Please enter a keyword';
                       }
                       return null;
                     },
@@ -51,10 +46,8 @@ class _KeywordScreenState extends State<KeywordScreen> {
                   ElevatedButton(
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
-                        keywordProvider
-                            .addKeyword(_keywordController.text); // Add keyword
-                        _keywordController
-                            .clear(); // Clear the input field after adding
+                        keywordProvider.addKeyword(_keywordController.text);
+                        _keywordController.clear();
                       }
                     },
                     child: Text('Add Keyword'),
@@ -64,30 +57,24 @@ class _KeywordScreenState extends State<KeywordScreen> {
             ),
             SizedBox(height: 24),
             Expanded(
-              // Expanded widget allows the list to take up remaining space
               child: ListView.builder(
-                itemCount:
-                    keywordProvider.keywords.length, // Number of keywords
+                itemCount: keywordProvider.keywords.length,
                 itemBuilder: (context, index) {
                   return ListTile(
-                    title: Text(keywordProvider
-                        .keywords[index].keyword), // Display keyword
+                    title: Text(keywordProvider.keywords[index].keyword),
                     trailing: Row(
-                      mainAxisSize: MainAxisSize
-                          .min, // Minimize row size to fit buttons only
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          icon: Icon(Icons.edit), // Edit icon button
+                          icon: Icon(Icons.edit),
                           onPressed: () {
-                            _editKeywordDialog(context, index,
-                                keywordProvider); // Open edit dialog
+                            _editKeywordDialog(context, index, keywordProvider);
                           },
                         ),
                         IconButton(
-                          icon: Icon(Icons.delete), // Delete icon button
+                          icon: Icon(Icons.delete),
                           onPressed: () {
-                            keywordProvider
-                                .removeKeyword(index); // Remove keyword
+                            keywordProvider.removeKeyword(index);
                           },
                         ),
                       ],
@@ -102,31 +89,28 @@ class _KeywordScreenState extends State<KeywordScreen> {
     );
   }
 
-  // Function to display a dialog for editing the keyword
   void _editKeywordDialog(
       BuildContext context, int index, KeywordProvider keywordProvider) {
     final _editKeywordController = TextEditingController(
-      text: keywordProvider.keywords[index]
-          .keyword, // Pre-fill the text field with the current keyword
+      text: keywordProvider.keywords[index].keyword,
     );
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Edit Keyword'), // Title of the dialog
+          title: Text('Edit Keyword'),
           content: FormBuilder(
             child: FormBuilderTextField(
               name: 'editKeyword',
-              controller:
-                  _editKeywordController, // Controller for the edit field
+              controller: _editKeywordController,
               decoration: InputDecoration(
-                labelText: 'Keyword', // Input label
+                labelText: 'Keyword',
                 border: OutlineInputBorder(),
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Please enter a keyword'; // Validator for empty input
+                  return 'Please enter a keyword';
                 }
                 return null;
               },
@@ -135,7 +119,7 @@ class _KeywordScreenState extends State<KeywordScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog without saving
+                Navigator.of(context).pop();
               },
               child: Text('Cancel'),
             ),
@@ -143,11 +127,11 @@ class _KeywordScreenState extends State<KeywordScreen> {
               onPressed: () {
                 if (_editKeywordController.text.isNotEmpty) {
                   keywordProvider.updateKeyword(
-                      index, _editKeywordController.text); // Update the keyword
-                  Navigator.of(context).pop(); // Close the dialog after saving
+                      index, _editKeywordController.text);
+                  Navigator.of(context).pop();
                 }
               },
-              child: Text('Save'), // Button to save changes
+              child: Text('Save'),
             ),
           ],
         );
@@ -157,8 +141,7 @@ class _KeywordScreenState extends State<KeywordScreen> {
 
   @override
   void dispose() {
-    _keywordController
-        .dispose(); // Dispose the controller when the widget is removed
+    _keywordController.dispose();
     super.dispose();
   }
 }

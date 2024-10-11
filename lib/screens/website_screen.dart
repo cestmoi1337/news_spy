@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
+import 'package:url_launcher/url_launcher.dart'; // Import url_launcher for opening links
 import '../providers/website_provider.dart';
 import '../providers/keyword_provider.dart'; // Import KeywordProvider
 import '../services/web_scraper.dart'; // Import WebScraper
@@ -20,7 +21,8 @@ class _WebsiteScreenState extends State<WebsiteScreen> {
       TextEditingController(); // Controller to manage text input for adding websites
   final WebScraper _webScraper = WebScraper(); // Instance of WebScraper
 
-  List<String> _matchedArticles = []; // List to store matching articles
+  List<Map<String, String>> _matchedArticles =
+      []; // List to store matching articles (title and URL)
 
   @override
   Widget build(BuildContext context) {
@@ -135,9 +137,26 @@ class _WebsiteScreenState extends State<WebsiteScreen> {
                       itemCount: _matchedArticles
                           .length, // Number of matching articles
                       itemBuilder: (context, index) {
+                        final article = _matchedArticles[index];
+                        final title = article['title']!;
+                        final url = article['url']!;
+
                         return ListTile(
                           title: Text(
-                              _matchedArticles[index]), // Display article title
+                            title,
+                            style: TextStyle(
+                                color: Colors.blue,
+                                decoration: TextDecoration
+                                    .underline), // Style as a link
+                          ),
+                          onTap: () async {
+                            // Open the article URL in the default browser
+                            if (await canLaunch(url)) {
+                              await launch(url);
+                            } else {
+                              print('Could not launch $url');
+                            }
+                          },
                         );
                       },
                     ),
@@ -154,7 +173,6 @@ class _WebsiteScreenState extends State<WebsiteScreen> {
               },
               child: Text('Search for Articles'),
             ),
-
           ],
         ),
       ),
@@ -162,13 +180,14 @@ class _WebsiteScreenState extends State<WebsiteScreen> {
   }
 
   // Function to scrape all websites and filter articles based on keywords
-Future<void> _scrapeWebsites(
+  Future<void> _scrapeWebsites(
       List<Website> websites, List<Keyword> keywords) async {
     List<String> keywordList = keywords
         .cast<Keyword>()
         .map((keyword) => keyword.keyword)
         .toList(); // Convert keywords to a list of strings
-    List<String> allMatchedArticles = []; // Store all matched articles
+    List<Map<String, String>> allMatchedArticles =
+        []; // Store matched articles with title and URL
 
     print('Starting to scrape websites...');
 
@@ -190,13 +209,13 @@ Future<void> _scrapeWebsites(
         print('Extracted ${articleTitles.length} article titles from: $url');
 
         // Filter articles that match any of the keywords
-        List<String> matchedArticles =
-            _webScraper.filterArticlesByKeyword(articleTitles, keywordList);
-
-        print('Found ${matchedArticles.length} matching articles for keywords');
-
-        // Add the matched articles to the result list
-        allMatchedArticles.addAll(matchedArticles);
+        for (var title in articleTitles) {
+          if (keywordList.any((keyword) =>
+              title.toLowerCase().contains(keyword.toLowerCase()))) {
+            allMatchedArticles.add(
+                {'title': title, 'url': url}); // Add matching article with URL
+          }
+        }
       } else {
         print('Failed to fetch content from: $url');
       }
@@ -212,8 +231,6 @@ Future<void> _scrapeWebsites(
       print('No articles matched the keywords');
     }
   }
-
-
 
   // Dialog to edit website URL
   void _editWebsiteDialog(
